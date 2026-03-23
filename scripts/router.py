@@ -1,11 +1,10 @@
 import json
-import ollama
 from rapidfuzz import process,fuzz
 import re
 import os
 import psycopg2
 from dataclasses import dataclass
-
+from langgraph import OllamaLLM
 
 DB_CONFIG = {
     "host": os.getenv("POSTGRES_HOST","postgres"),
@@ -129,13 +128,9 @@ def fuzzy_match(query:str) -> tuple[str|None, str|None, float]:
 
 
 def llm_fallback(query:str) -> RouterResult:
+    ollama = OllamaLLM(model="mistral:latest")
     try:
-        ollama_response = ollama.chat(
-            model = "mistral:latest",
-            messages = [
-                {
-                    "role" : "system",
-                    "content" : """ 
+        ollama_response = f"""
                         You are a query classifier for an e-commerce product review assistant.
                         Your task is to classify retrieval strategy for user queries into three categories: 
                             1) sparse: for factual queries about price, brand, category, specifications
@@ -147,16 +142,10 @@ def llm_fallback(query:str) -> RouterResult:
                             "retrieval_type": "sparse|dense|hybrid",
                             "reason": "explanation of why this retrieval type was chosen"
                         }
-                        """
-                },
-                {
-                    "role" : "user",
-                    "content" : f"Classify the intent of following {query}"
-                }
-            ]
-        )
-
-        raw = ollama_response.message.content
+                        Classify the intent of following {query} and respond with the appropriate retrieval type and reason.
+                     """
+        
+        raw = ollama.invoke(prompt = ollama_response)
         result = json.loads(raw)
         return RouterResult(
                 result.get("retrieval_type"), 

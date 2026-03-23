@@ -31,14 +31,17 @@ class RetrievalResult:
     rank : int
     metadata: dict
 
+
 @dataclass
 class FinalResult:
     query: str
     resolved_asin: Optional[str]
     items: List[RetrievalResult]
 
+
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
+
 
 def sparse_fact_retrieval(query: str, top_k: int = 5) -> List[RetrievalResult]:
     conn = get_connection()
@@ -70,6 +73,7 @@ def sparse_fact_retrieval(query: str, top_k: int = 5) -> List[RetrievalResult]:
     conn.close()
     return retrieval_results
 
+
 def dense_fact_retrieval(query: str, top_k: int = 5) -> List[RetrievalResult]:
     client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
     query_embedding = EMBEDDING_MODEL.encode(query).tolist()
@@ -94,6 +98,7 @@ def dense_fact_retrieval(query: str, top_k: int = 5) -> List[RetrievalResult]:
         ))
     return retrieval_results
     
+
 def fusion_retrieval(query: str, top_k: int = 5, k :int =60) -> FinalResult:
     sparse_results = sparse_fact_retrieval(query, top_k)
     dense_results = dense_fact_retrieval(query, top_k)

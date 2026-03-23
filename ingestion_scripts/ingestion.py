@@ -1,6 +1,6 @@
 from psycopg2.extras import execute_values
 import json
-from scripts.ingestion_helper import iter_rows,extract_metadata,extract_reviews
+from ingestion_helper import iter_rows,extract_metadata,extract_reviews
 import psycopg2
 import argparse
 import os
