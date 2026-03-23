@@ -28,7 +28,7 @@ class RetrievalResult:
     asin_id: str
     text: str
     score: float
-    rank : str
+    rank : int
     metadata: dict
 
 @dataclass
@@ -84,7 +84,7 @@ def dense_fact_retrieval(query: str, top_k: int = 5) -> List[RetrievalResult]:
     for rank, item in enumerate(search_result):
         retrieval_results.append(RetrievalResult(
             source="dense",
-            doc_id=item.id,
+            doc_id=str(item.id),
             review_id=item.payload.get("review_id"),
             asin_id=item.payload.get("asin"),
             text=item.payload.get("text"),
@@ -101,15 +101,15 @@ def fusion_retrieval(query: str, top_k: int = 5, k :int =60) -> FinalResult:
     scores = {}
     best_asin = {}
 
-    for sparse,dense in zip(sparse_results, dense_results):
-        for item in [sparse]+[dense]:
-            if item.rank is None:
-                raise ValueError("Rank cannot be None")
-            
-            key = f"{item.source}:{item.doc_id}"
-            scores[key] = scores.get(key, 0) + 1.0/k+item.score
-            if key not in best_asin or best_asin[key].rank > item.rank:
-                best_asin[key] = item
+    for item in sparse_results + dense_results:
+        if item.rank is None:
+            raise ValueError("Rank cannot be None")
+
+        key = f"{item.source}:{item.doc_id}"
+        scores[key] = scores.get(key, 0) + 1.0/(k+item.rank)
+
+        if key not in best_asin or best_asin[key].rank > item.rank:
+            best_asin[key] = item
 
     ordered = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]        
     
@@ -131,4 +131,8 @@ def fusion_retrieval(query: str, top_k: int = 5, k :int =60) -> FinalResult:
 
         fused_results.append(copied)
 
-    return fused_results
+    return FinalResult(
+        query=query,
+        resolved_asin=fused_results[0].asin_id if fused_results else None,
+        items=fused_results,
+    )

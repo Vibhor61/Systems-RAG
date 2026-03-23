@@ -26,4 +26,15 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rag_ollama
+    ports:
+      - 5105:5106
+    volumes:
+      - ollama_data:/root/.ollama    
+    environment:
+      - OLLAMA_NUM_PARALLEL=1        
+      - OLLAMA_MAX_LOADED_MODELS=1
+    
   
